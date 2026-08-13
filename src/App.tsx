@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { Highlight, Prism, type PrismTheme } from "prism-react-renderer";
 import {
   Check,
   Copy,
@@ -8,47 +8,13 @@ import {
   Github,
   Laptop,
   Package,
-  Sun,
+  Star,
   Waves,
   Workflow,
 } from "lucide-react";
 
-const GITHUB_URL = "https://github.com";
-const PYPI_URL = "https://pypi.org";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "testbricks — Run Databricks workflows on your laptop" },
-      {
-        name: "description",
-        content:
-          "testbricks is a Python library that runs Databricks workflows locally. SparkMock routes delta reads and writes to CSV, dbutils is a drop-in mock, and LocalWorkflowRunner executes notebooks in dependency order.",
-      },
-      {
-        property: "og:title",
-        content: "testbricks — Run Databricks workflows on your laptop",
-      },
-      {
-        property: "og:description",
-        content:
-          "Local-first Databricks development: a SparkMock backed by CSV, a drop-in dbutils replacement, and a workflow runner that reads your workflow JSON.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      {
-        name: "twitter:title",
-        content: "testbricks — Run Databricks workflows on your laptop",
-      },
-      {
-        name: "twitter:description",
-        content:
-          "Local-first Databricks development with SparkMock, a dbutils mock, and a JSON workflow runner.",
-      },
-    ],
-  }),
-  component: Index,
-});
+const GITHUB_URL = "https://github.com/engineeringmadness/testbricks";
+const PYPI_URL = "https://pypi.org/project/testbricks/";
 
 /* ---------------------------------- data --------------------------------- */
 
@@ -157,56 +123,75 @@ function useCopy() {
   return { copied, copy };
 }
 
-const PY_KEYWORDS = new Set([
-  "from",
-  "import",
-  "def",
-  "return",
-  "class",
-  "with",
-  "as",
-  "for",
-  "in",
-  "if",
-  "else",
-]);
+/* ------------------------------ code theme ------------------------------- */
 
-function highlight(code: string) {
-  // Lightweight token pass: keywords, strings, comments. Keeps the bundle tiny.
-  const parts = code.split(/("(?:[^"\\]|\\.)*"|#[^\n]*|\b[A-Za-z_][A-Za-z0-9_]*\b)/g);
+// Prism's Python grammar only styles `def`/`class` names, so extend it to also
+// highlight function/method calls (and constructor calls like `SparkMock(...)`).
+// Inserted after `keyword` so keywords such as `from`/`import` still take priority.
+Prism.languages.insertBefore("python", "builtin", {
+  "function-call": {
+    pattern: /\b[A-Za-z_][A-Za-z0-9_]*(?=\s*\()/,
+    alias: "function",
+  },
+});
 
-  return parts.map((part, i) => {
-    if (!part) return null;
-    if (part.startsWith('"')) {
-      return (
-        <span key={i} className="text-primary">
-          {part}
-        </span>
-      );
-    }
-    if (part.startsWith("#")) {
-      return (
-        <span key={i} className="text-muted-foreground italic">
-          {part}
-        </span>
-      );
-    }
-    if (PY_KEYWORDS.has(part)) {
-      return (
-        <span key={i} className="font-semibold text-accent">
-          {part}
-        </span>
-      );
-    }
-    if (/^[A-Z]/.test(part)) {
-      return (
-        <span key={i} className="font-semibold text-foreground">
-          {part}
-        </span>
-      );
-    }
-    return <span key={i}>{part}</span>;
-  });
+// Dark editor palette drawn from the Sandy Shore design tokens (teal, coral, sand).
+const CODE_THEME: PrismTheme = {
+  plain: {
+    color: "#d7e5e2",
+    backgroundColor: "#0c1a1a",
+  },
+  styles: [
+    {
+      types: ["comment", "prolog", "cdata"],
+      style: { color: "#5f7a76", fontStyle: "italic" },
+    },
+    {
+      types: ["string", "char", "attr-value", "string-interpolation"],
+      style: { color: "#8fd6c5" },
+    },
+    {
+      types: ["keyword", "atrule"],
+      style: { color: "#f4a261" },
+    },
+    {
+      types: ["boolean", "constant"],
+      style: { color: "#ff9e7d" },
+    },
+    {
+      types: ["number"],
+      style: { color: "#ffb36b" },
+    },
+    {
+      types: ["function", "class-name", "builtin", "maybe-class-name"],
+      style: { color: "#ffd166" },
+    },
+    {
+      types: ["operator", "punctuation"],
+      style: { color: "#93a6a1" },
+    },
+  ],
+};
+
+function CodeBlock({ code }: { code: string }) {
+  return (
+    <Highlight theme={CODE_THEME} code={code.trim()} language="python">
+      {({ style, tokens, getLineProps, getTokenProps }) => (
+        <pre
+          style={style}
+          className="overflow-x-auto px-5 py-6 font-mono text-[0.84rem] leading-relaxed sm:text-sm"
+        >
+          {tokens.map((line, i) => (
+            <div key={i} {...getLineProps({ line })}>
+              {line.map((token, key) => (
+                <span key={key} {...getTokenProps({ token })} />
+              ))}
+            </div>
+          ))}
+        </pre>
+      )}
+    </Highlight>
+  );
 }
 
 /* -------------------------------- sections ------------------------------- */
@@ -219,9 +204,7 @@ function Nav() {
           <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Waves className="size-4" aria-hidden />
           </span>
-          <span className="font-display text-lg font-bold tracking-tight">
-            testbricks
-          </span>
+          <span className="font-display text-lg font-bold tracking-tight">testbricks</span>
         </a>
 
         <div className="flex items-center gap-1 sm:gap-2">
@@ -268,22 +251,17 @@ function Hero() {
   return (
     <section id="top" className="sand-grain relative overflow-hidden">
       <div className="mx-auto max-w-5xl px-5 pt-20 pb-16 sm:pt-28 sm:pb-24">
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          <Sun className="size-3.5 text-accent" aria-hidden />
-          Local-first Databricks
-        </span>
-
-        <h1 className="font-display mt-6 max-w-3xl text-4xl leading-[1.08] font-extrabold tracking-tight text-balance sm:text-6xl">
-          Run Databricks workflows
-          <span className="text-primary"> on your laptop</span>.
+        <h1 className="font-display max-w-3xl text-4xl leading-[1.08] font-extrabold tracking-tight text-balance sm:text-6xl">
+          Run Databricks Workflows E2E
+          <span className="text-primary"> in your Local Environment</span>
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          testbricks is a Python library with genuinely useful mocks — a Spark
-          proxy that reads and writes delta tables as CSV, a drop-in{" "}
-          <code className="font-mono text-[0.92em] text-foreground">dbutils</code>{" "}
-          replacement, and a runner that executes a whole workflow JSON in
-          dependency order. No cluster. No waiting around.
+          testbricks is a Python library with genuinely useful mocks — a Spark proxy that reads and
+          writes delta tables as CSV, a drop-in{" "}
+          <code className="font-mono text-[0.92em] text-foreground">dbutils</code> replacement, and
+          a runner that executes a whole workflow JSON in dependency order. No cluster. No waiting
+          around.
         </p>
 
         <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -322,14 +300,14 @@ function Hero() {
 
 function Features() {
   return (
-    <section id="features" className="border-t border-border/60">
+    <section id="features" className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
         <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
           Mocks that actually hold up
         </h2>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Everything your notebook reaches for in a Databricks runtime, quietly
-          reimplemented for a machine that fits on your desk.
+          Everything your notebook reaches for in a Databricks runtime, quietly reimplemented for a
+          machine that fits on your desk.
         </p>
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2">
@@ -342,9 +320,7 @@ function Features() {
                 <f.icon className="size-5" aria-hidden />
               </span>
               <h3 className="font-display mt-5 text-lg font-bold">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {f.body}
-              </p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
             </div>
           ))}
         </div>
@@ -359,14 +335,13 @@ function CodeSection() {
   const snippet = SNIPPETS.find((s) => s.id === active) ?? SNIPPETS[0];
 
   return (
-    <section id="code" className="border-t border-border/60 bg-muted/40">
+    <section id="code" className="scroll-mt-20 border-t border-border/60 bg-muted/40">
       <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
         <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
           Three imports, and you're local
         </h2>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          The same notebook code you'd ship to a job cluster, running on your
-          machine.
+          The same notebook code you'd ship to a job cluster, running on your machine.
         </p>
 
         <div className="mt-10 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -393,9 +368,7 @@ function CodeSection() {
           </div>
 
           <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {snippet.blurb}
-            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{snippet.blurb}</p>
             <button
               onClick={() => copy(snippet.code, snippet.id)}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
@@ -415,9 +388,7 @@ function CodeSection() {
             </button>
           </div>
 
-          <pre className="overflow-x-auto px-5 py-6 font-mono text-[0.84rem] leading-relaxed sm:text-sm">
-            <code>{highlight(snippet.code)}</code>
-          </pre>
+          <CodeBlock code={snippet.code} />
         </div>
       </div>
     </section>
@@ -428,50 +399,34 @@ function HowItWorks() {
   return (
     <section className="border-t border-border/60">
       <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
-        <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          How it works
-        </h2>
+        <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">How it works</h2>
 
         <ol className="mt-12 grid gap-8 sm:grid-cols-3">
           {STEPS.map((s) => (
             <li key={s.n}>
-              <span className="font-display text-4xl font-extrabold text-accent">
-                {s.n}
-              </span>
+              <span className="font-display text-4xl font-extrabold text-accent">{s.n}</span>
               <h3 className="font-display mt-3 text-lg font-bold">{s.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {s.body}
-              </p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
             </li>
           ))}
         </ol>
 
         <div className="sand-grain mt-16 rounded-2xl border border-border p-8 text-center sm:p-12">
-          <h3 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-            Give your cluster the afternoon off
+          <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-card text-foreground">
+            <Github className="size-7" aria-hidden />
+          </span>
+          <h3 className="font-display mt-6 text-2xl font-bold tracking-tight sm:text-3xl">
+            Love Testbricks?
           </h3>
-          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            Install testbricks and run your next workflow without leaving your
-            editor.
-          </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <a
-              href={PYPI_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
-            >
-              <Package className="size-4" aria-hidden />
-              Get it on PyPI
-            </a>
+          <div className="mt-7 flex justify-center">
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
             >
-              <Github className="size-4" aria-hidden />
-              Read the source
+              <Star className="size-4" aria-hidden />
+              Star on GitHub
             </a>
           </div>
         </div>
@@ -483,44 +438,16 @@ function HowItWorks() {
 function Footer() {
   return (
     <footer className="border-t border-border/60">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Waves className="size-3.5" aria-hidden />
-          </span>
-          <span className="font-display font-bold">testbricks</span>
-          <span className="text-sm text-muted-foreground">
-            — Databricks, locally.
-          </span>
-        </div>
-
-        <div className="flex items-center gap-5 text-sm text-muted-foreground">
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="transition-colors hover:text-foreground"
-          >
-            GitHub
-          </a>
-          <a
-            href={PYPI_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="transition-colors hover:text-foreground"
-          >
-            PyPI
-          </a>
-          <span>Built with a chill vibe.</span>
-        </div>
+      <div className="mx-auto max-w-5xl px-5 py-10 text-center text-sm text-muted-foreground">
+        Made with care for Databricks users
       </div>
     </footer>
   );
 }
 
-function Index() {
+export default function App() {
   return (
-    <div className="min-h-screen scroll-smooth">
+    <div className="min-h-screen">
       <Nav />
       <main>
         <Hero />
