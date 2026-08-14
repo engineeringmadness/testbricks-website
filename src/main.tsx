@@ -1,6 +1,10 @@
 import { Component, StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
+import "@fontsource-variable/sora";
+import "@fontsource-variable/manrope";
+import "@fontsource-variable/jetbrains-mono";
+
 import App from "./App";
 import { reportLovableError } from "./lib/lovable-error-reporting";
 import "./styles.css";
